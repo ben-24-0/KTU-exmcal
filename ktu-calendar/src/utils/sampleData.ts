@@ -538,7 +538,7 @@ export const addSampleExams = async () => {
       slot: "F",
       course: "Civil"
     }
-  ]
+  ];
   
   const civilS8Exams = [
     {
@@ -577,7 +577,7 @@ export const addSampleExams = async () => {
       slot: "D",
       course: "Civil"
     }
-  ]
+  ];
   
 
   const civilS6Exams = [
@@ -635,7 +635,7 @@ export const addSampleExams = async () => {
       slot: "F",
       course: "Civil"
     }
-  ]
+  ];
 
   // AI&ML S4 Exams
   const aimlS4Exams = [
@@ -793,6 +793,163 @@ export const addSampleExams = async () => {
     }
   ];
 
+  // EC S4 Exams
+  const ecS4Exams = [
+    {
+      name: "MATHS",
+      subjectCode: "MAT204",
+      date: "2025-04-29",
+      time: "9:30 AM",
+      semester: 4,
+      slot: "A",
+      course: "ECE"
+    },
+    {
+      name: "AC",
+      subjectCode: "ECT202",
+      date: "2025-05-05",
+      time: "9:30 AM",
+      semester: 4,
+      slot: "B",
+      course: "ECE"
+    },
+    {
+      name: "SS",
+      subjectCode: "ECT204",
+      date: "2025-05-09",
+      time: "9:30 AM",
+      semester: 4,
+      slot: "C",
+      course: "ECE"
+    },
+    {
+      name: "CAM",
+      subjectCode: "ECT206",
+      date: "2025-05-14",
+      time: "9:30 AM",
+      semester: 4,
+      slot: "D",
+      course: "ECE"
+    },
+    {
+      name: "DE/PE",
+      subjectCode: "EST200/HUT200",
+      date: "2025-05-17",
+      time: "9:30 AM",
+      semester: 4,
+      slot: "E",
+      course: "ECE"
+    },
+    {
+      name: "COI",
+      subjectCode: "MCN202",
+      date: "2025-05-21",
+      time: "9:30 AM",
+      semester: 4,
+      slot: "F",
+      course: "ECE"
+    }
+  ];
+
+  // EC S6 Exams
+  const ecS6Exams = [
+    {
+      name: "EM",
+      subjectCode: "ECT302",
+      date: "2025-04-25",
+      time: "9:30 AM",
+      semester: 6,
+      slot: "A",
+      course: "ECE"
+    },
+    {
+      name: "VLSI CIRCUIT DESIGN",
+      subjectCode: "ECT304",
+      date: "2025-05-02",
+      time: "9:30 AM",
+      semester: 6,
+      slot: "B",
+      course: "ECE"
+    },
+    {
+      name: "ITC",
+      subjectCode: "ECT306",
+      date: "2025-05-08",
+      time: "9:30 AM",
+      semester: 6,
+      slot: "C",
+      course: "ECE"
+    },
+    {
+      name: "PRGM ELECTIVE-I",
+      subjectCode: "ECTXXX",
+      date: "2025-05-13",
+      time: "9:30 AM",
+      semester: 6,
+      slot: "D",
+      course: "ECE"
+    },
+    {
+      name: "IEFT/MFE",
+      subjectCode: "HUT300/HUT310",
+      date: "2025-05-16",
+      time: "9:30 AM",
+      semester: 6,
+      slot: "E",
+      course: "ECE"
+    },
+    {
+      name: "COMPREHENSIVE",
+      subjectCode: "ECT308",
+      date: "2025-05-20",
+      time: "9:30 AM",
+      semester: 6,
+      slot: "F",
+      course: "ECE"
+    }
+  ];
+
+  // EC S8 Exams
+  const ecS8Exams = [
+    {
+      name: "WC",
+      subjectCode: "ECT402",
+      date: "2025-04-22",
+      time: "9:30 AM",
+      semester: 8,
+      slot: "A",
+      course: "ECE"
+    },
+    {
+      name: "PRGM ELECTIVE-III",
+      subjectCode: "ECTXXX",
+      date: "2025-04-24",
+      time: "9:30 AM",
+      semester: 8,
+      slot: "B",
+      course: "ECE"
+    },
+    {
+      name: "PRGM ELECTIVE-IV",
+      subjectCode: "ECTXXX",
+      date: "2025-04-28",
+      time: "9:30 AM",
+      semester: 8,
+      slot: "C",
+      course: "ECE"
+    },
+    {
+      name: "PRGM ELECTIVE-V",
+      subjectCode: "ECTXXX",
+      date: "2025-04-30",
+      time: "9:30 AM",
+      semester: 8,
+      slot: "D",
+      course: "ECE"
+    }
+  ];
+  
+  
   const allExams = [
     ...cseS8Exams, 
     ...cseS6Exams, 
@@ -805,7 +962,13 @@ export const addSampleExams = async () => {
     ...mechS8Exams,
     ...aimlS4Exams,
     ...aimlS6Exams,
-    ...aimlS8Exams
+    ...aimlS8Exams,
+    ...civilS4Exams,
+    ...civilS6Exams,
+    ...civilS8Exams,
+    ...ecS4Exams,
+    ...ecS6Exams,
+    ...ecS8Exams
   ];
 
   try {

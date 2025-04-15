@@ -37,8 +37,10 @@ const COURSES: Course[] = [
   { id: 'CSE', name: 'Computer Science Engineering' },
   { id: 'ECE', name: 'Electronics & Communication' },
   { id: 'EEE', name: 'Electrical & Electronics' },
-  { id: 'CE', name: 'Civil Engineering' },
-  { id: 'ME', name: 'Mechanical Engineering' },
+  { id: 'Civil', name: 'Civil Engineering' },
+  { id: 'MECH', name: 'Mechanical Engineering' },
+  { id: 'AI&ML', name: 'Artificial Intelligence & Machine Learning' },
+  
 ];
 
 const CalendarComponent: React.FC = () => {
