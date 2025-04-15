@@ -124,27 +124,29 @@ button:focus-visible {
 }
 
 .react-calendar__month-view__days__day {
-  max-width: none !important;
-  flex-basis: 14.2857% !important;
+  height: 90px !important;
+  position: relative;
+  padding: 4px !important;
 }
 
 .react-calendar__month-view__days__day--weekend {
   color: #ff8a80 !important;
+  height: 90px !important;
 }
 
 .react-calendar__tile {
   max-width: 100%;
-  padding: 10px 6px;
+  padding: 8px 4px !important;
   background: #2d2d2d;
   text-align: center;
-  line-height: 16px;
   border: 1px solid #333;
   border-radius: 4px;
   height: auto !important;
-  min-height: 80px;
-  position: relative;
+  min-height: 90px;
   color: #fff;
-  aspect-ratio: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
 }
 
 .react-calendar__tile:enabled:hover,
@@ -153,20 +155,25 @@ button:focus-visible {
 }
 
 .react-calendar__tile--now {
-  background: #2d2d2d !important;
+  background: #f0f7ff !important;
   border: 2px solid #ffc107 !important;
   font-weight: bold;
   color: #ffc107 !important;
 }
 
+.react-calendar__tile--now:enabled:hover,
+.react-calendar__tile--now:enabled:focus {
+  background: #e3f2fd !important;
+}
+
 .react-calendar__tile--active {
-  background: #004c99 !important;
-  color: white !important;
+  background: #bbdefb !important;
+  color: black !important;
 }
 
 .react-calendar__tile--active:enabled:hover,
 .react-calendar__tile--active:enabled:focus {
-  background: #0056b3 !important;
+  background: #90caf9 !important;
 }
 
 .react-calendar__month-view__days__day--neighboringMonth {
@@ -184,15 +191,26 @@ button:focus-visible {
 
 /* Exam indicator styles */
 .exam-indicator {
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 6px;
-  height: 6px;
-  background-color: #ff6b6b;
-  border-radius: 50%;
-  box-shadow: 0 0 4px rgba(255, 107, 107, 0.5);
+  width: 100%;
+  background-color: #1976d2;
+  border-radius: 4px;
+  padding: 6px 4px;
+  margin-top: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.exam-indicator:hover {
+  background-color: #2196f3;
+  transform: scale(1.02);
+}
+
+/* Make the date number smaller and positioned at the top */
+.react-calendar__tile > abbr {
+  font-size: 0.9em;
+  font-weight: normal;
+  display: block;
+  margin-bottom: 4px;
 }
 
 /* Calendar container styles */
@@ -205,13 +223,22 @@ button:focus-visible {
 
 @media (max-width: 768px) {
   .react-calendar__tile {
-    min-height: 60px;
-    font-size: 0.9em;
+    min-height: 80px;
+    padding: 4px 2px !important;
   }
   
   .react-calendar__month-view__days {
     gap: 2px !important;
     padding: 2px;
+  }
+  
+  .react-calendar__month-view__days__day {
+    height: 80px !important;
+  }
+  
+  .exam-indicator {
+    padding: 4px 2px;
+    margin-top: 4px;
   }
 }
 

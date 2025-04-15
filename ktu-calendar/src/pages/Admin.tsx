@@ -8,7 +8,6 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  Grid,
   TextField,
   Typography,
   FormControl,
@@ -163,45 +162,51 @@ export default function Admin() {
         </Alert>
       )}
 
-      <Grid container spacing={2}>
+      <Box sx={{ 
+        display: 'grid', 
+        gridTemplateColumns: {
+          xs: '1fr',
+          sm: 'repeat(2, 1fr)',
+          md: 'repeat(3, 1fr)'
+        },
+        gap: 2
+      }}>
         {exams.map((exam) => (
-          <Grid item xs={12} sm={6} md={4} key={exam.id}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  {exam.name}
-                </Typography>
-                <Typography color="textSecondary">
-                  Subject Code: {exam.subjectCode}
-                </Typography>
-                <Typography>
-                  Date: {format(new Date(exam.date), 'MMMM dd, yyyy')}
-                </Typography>
-                <Typography>Time: {exam.time}</Typography>
-                {exam.venue && <Typography>Venue: {exam.venue}</Typography>}
-                <Typography>Semester: {exam.semester}</Typography>
-                <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                  <Button
-                    size="small"
-                    startIcon={<EditIcon />}
-                    onClick={() => handleOpen(exam)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    size="small"
-                    color="error"
-                    startIcon={<DeleteIcon />}
-                    onClick={() => handleDelete(exam.id)}
-                  >
-                    Delete
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
+          <Card key={exam.id} sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                {exam.name}
+              </Typography>
+              <Typography color="textSecondary">
+                Subject Code: {exam.subjectCode}
+              </Typography>
+              <Typography>
+                Date: {format(new Date(exam.date), 'MMMM dd, yyyy')}
+              </Typography>
+              <Typography>Time: {exam.time}</Typography>
+              {exam.venue && <Typography>Venue: {exam.venue}</Typography>}
+              <Typography>Semester: {exam.semester}</Typography>
+              <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  startIcon={<EditIcon />}
+                  onClick={() => handleOpen(exam)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="small"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => handleDelete(exam.id)}
+                >
+                  Delete
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
         ))}
-      </Grid>
+      </Box>
 
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>

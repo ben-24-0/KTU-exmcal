@@ -11,6 +11,7 @@ import Calendar from './pages/Calendar';
 import Admin from './pages/Admin';
 import Login from './pages/Login';
 import Layout from './components/Layout';
+import AdminUtils from './pages/AdminUtils';
 
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -25,6 +26,7 @@ function App() {
             <Route path="/" element={<Layout isAdmin={isAdmin} />}>
               <Route index element={<Calendar />} />
               {isAdmin && <Route path="/admin" element={<Admin />} />}
+              <Route path="/admin-utils" element={<AdminUtils />} />
             </Route>
           </Routes>
         </Box>

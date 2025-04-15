@@ -1,24 +1,21 @@
-import React from 'react';
+import React, { MouseEvent } from 'react';
 import { useState, useEffect } from 'react';
 import {
   Box,
   Card,
   CardContent,
-  Grid,
   Typography,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  ToggleButton,
-  ToggleButtonGroup,
-  useTheme,
   Alert,
   CircularProgress,
+  Paper,
 } from '@mui/material';
 import Calendar from 'react-calendar';
 import type { CalendarProps } from 'react-calendar';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { collection, query, where, getDocs, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Exam } from '../types';
@@ -29,14 +26,29 @@ type CalendarTileProps = {
   view: string;
 };
 
+type Value = Date | [Date, Date] | null;
+
+type Course = {
+  id: string;
+  name: string;
+};
+
+const COURSES: Course[] = [
+  { id: 'CSE', name: 'Computer Science Engineering' },
+  { id: 'ECE', name: 'Electronics & Communication' },
+  { id: 'EEE', name: 'Electrical & Electronics' },
+  { id: 'CE', name: 'Civil Engineering' },
+  { id: 'ME', name: 'Mechanical Engineering' },
+];
+
 const CalendarComponent: React.FC = () => {
-  const [date, setDate] = useState<Date>(new Date());
-  const [semester, setSemester] = useState<number>(1);
-  const [view, setView] = useState<'calendar' | 'list'>('calendar');
+  const [date, setDate] = useState<Value>(new Date());
+  const [semester, setSemester] = useState<number>(4);
+  const [course, setCourse] = useState<string>('CSE'); // Default to CSE
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const theme = useTheme();
+  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -45,19 +57,15 @@ const CalendarComponent: React.FC = () => {
         setError(null);
         const q = query(
           collection(db, 'exams'),
-          where('semester', '==', semester)
+          where('semester', '==', semester),
+          where('course', '==', course)
         );
         const querySnapshot = await getDocs(q);
         const examData: Exam[] = [];
         
-        if (querySnapshot.empty) {
-          console.log('No exams found for semester:', semester);
-          setExams([]);
-          return;
-        }
-
         querySnapshot.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
           const data = doc.data();
+          console.log('Fetched exam data:', data); // Debug log
           try {
             const date = parseISO(data.date);
             if (isNaN(date.getTime())) {
@@ -77,39 +85,23 @@ const CalendarComponent: React.FC = () => {
             console.error(`Error processing exam ${doc.id}:`, err);
           }
         });
-        
-        if (examData.length === 0) {
-          setError('No valid exams found for this semester. Please check the exam data format.');
-          return;
-        }
 
+        console.log('Total exams loaded:', examData.length); // Debug log
+        
         // Sort exams by date
         setExams(examData.sort((a, b) => 
           new Date(a.date).getTime() - new Date(b.date).getTime()
         ));
       } catch (err) {
         console.error('Error fetching exams:', err);
-        if (err instanceof Error) {
-          setError(`Failed to load exams: ${err.message}`);
-        } else {
-          setError('Failed to load exams. Please check your internet connection and try again.');
-        }
+        setError('Failed to load exams. Please try again.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchExams();
-  }, [semester]);
-
-  const handleViewChange = (
-    _event: React.MouseEvent<HTMLElement>,
-    newView: 'calendar' | 'list' | null
-  ) => {
-    if (newView !== null) {
-      setView(newView);
-    }
-  };
+  }, [semester, course]);
 
   const tileContent = ({ date, view }: CalendarTileProps) => {
     if (view !== 'month') return null;
@@ -118,77 +110,170 @@ const CalendarComponent: React.FC = () => {
       (exam) => format(new Date(exam.date), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
     );
 
+    console.log('Date:', format(date, 'yyyy-MM-dd'), 'Exam:', examOnDate); // Debug log
+
     return examOnDate ? (
-      <div className="exam-indicator">
-        <Typography variant="caption" component="div" noWrap>
-          {examOnDate.name}
-        </Typography>
-        <Typography variant="caption" component="div" color="textSecondary" noWrap>
-          {examOnDate.time}
+      <div 
+        className="exam-indicator" 
+        onClick={(e: React.MouseEvent) => {
+          e.stopPropagation();
+          setSelectedExam(examOnDate);
+        }}
+        style={{ // Add inline styles to ensure visibility
+          backgroundColor: '#1976d2',
+          padding: '4px',
+          borderRadius: '4px',
+          marginTop: '4px',
+          width: '100%'
+        }}
+      >
+        <Typography 
+          variant="caption" 
+          component="div" 
+          sx={{ 
+            color: '#fff',
+            fontSize: '0.85rem',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            width: '100%',
+            display: 'block'
+          }}
+        >
+          {examOnDate.subjectCode}
         </Typography>
       </div>
     ) : null;
   };
 
-  const calculateStudyLeave = (currentExam: Exam, nextExam: Exam): number => {
-    const currentDate = new Date(currentExam.date);
-    const nextDate = new Date(nextExam.date);
-    const diffTime = nextDate.getTime() - currentDate.getTime();
-    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const handleDateChange: CalendarProps['onChange'] = (value) => {
+    if (value instanceof Date) {
+      setDate(value);
+      const examOnDate = exams.find(
+        (exam) => format(new Date(exam.date), 'yyyy-MM-dd') === format(value, 'yyyy-MM-dd')
+      );
+      setSelectedExam(examOnDate || null);
+    }
   };
 
   return (
-    <Box sx={{ width: '100%' }}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : error ? (
-          <Alert severity="error">{error}</Alert>
-        ) : (
-          <>
-            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-              <Calendar
-                onChange={(value) => {
-                  if (value instanceof Date) {
-                    setDate(value);
-                  }
-                }}
-                value={date}
-                tileContent={tileContent}
-              />
-            </Box>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' }, gap: 2 }}>
-              {exams.length > 0 ? (
-                exams.map((exam) => (
-                  <Card key={exam.id}>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        {exam.name}
-                      </Typography>
-                      <Typography color="textSecondary">
-                        Subject Code: {exam.subjectCode}
-                      </Typography>
-                      <Typography>
-                        Date: {format(new Date(exam.date), 'MMMM dd, yyyy')}
-                      </Typography>
-                      <Typography>Time: {exam.time}</Typography>
-                      {exam.venue && (
-                        <Typography>Venue: {exam.venue}</Typography>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              ) : (
-                <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-                  <Alert severity="info">No exams scheduled</Alert>
-                </Box>
-              )}
-            </Box>
-          </>
-        )}
+    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+        <Typography variant="h4" gutterBottom>
+          Exam Calendar
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <FormControl sx={{ minWidth: 200 }}>
+            <InputLabel>Course</InputLabel>
+            <Select
+              value={course}
+              label="Course"
+              onChange={(e) => setCourse(e.target.value)}
+            >
+              {COURSES.map((course) => (
+                <MenuItem key={course.id} value={course.id}>
+                  {course.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <FormControl sx={{ minWidth: 120 }}>
+            <InputLabel>Semester</InputLabel>
+            <Select
+              value={semester}
+              label="Semester"
+              onChange={(e) => setSemester(e.target.value as number)}
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                <MenuItem key={sem} value={sem}>
+                  Semester {sem}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
       </Box>
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Alert severity="error">{error}</Alert>
+      ) : (
+        <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
+          <Box sx={{ flex: 1 }}>
+            <Calendar
+              onChange={handleDateChange}
+              value={date}
+              tileContent={tileContent}
+              className="dark-calendar"
+              minDate={new Date(2025, 0, 1)}  // January 1, 2025
+              maxDate={new Date(2025, 11, 31)} // December 31, 2025
+              minDetail="month" // This will hide the year view
+            />
+          </Box>
+          <Box sx={{ width: { xs: '100%', md: '300px' } }}>
+            {selectedExam ? (
+              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d' }}>
+                <Typography variant="h6" gutterBottom>
+                  {selectedExam.name}
+                </Typography>
+                <Typography color="textSecondary" gutterBottom>
+                  Subject Code: {selectedExam.subjectCode}
+                </Typography>
+                <Typography gutterBottom>
+                  Date: {format(new Date(selectedExam.date), 'MMMM dd, yyyy')}
+                </Typography>
+                <Typography gutterBottom>
+                  Time: {selectedExam.time}
+                </Typography>
+                {selectedExam.venue && (
+                  <Typography gutterBottom>
+                    Venue: {selectedExam.venue}
+                  </Typography>
+                )}
+              </Paper>
+            ) : (
+              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d' }}>
+                <Typography>
+                  {exams.length > 0 
+                    ? 'Select a date with an exam to view details'
+                    : 'No exams scheduled for this semester'}
+                </Typography>
+              </Paper>
+            )}
+            
+            {exams.length > 0 && (
+              <Paper elevation={3} sx={{ p: 2, mt: 2, backgroundColor: '#2d2d2d' }}>
+                <Typography variant="h6" gutterBottom>
+                  Upcoming Exams
+                </Typography>
+                {exams.map((exam) => (
+                  <Box 
+                    key={exam.id} 
+                    sx={{ 
+                      mb: 1, 
+                      p: 1, 
+                      borderRadius: 1,
+                      cursor: 'pointer',
+                      '&:hover': { backgroundColor: '#383838' },
+                      backgroundColor: selectedExam?.id === exam.id ? '#404040' : 'transparent'
+                    }}
+                    onClick={() => setSelectedExam(exam)}
+                  >
+                    <Typography variant="subtitle2">
+                      {exam.name}
+                    </Typography>
+                    <Typography variant="caption" color="textSecondary">
+                      {format(new Date(exam.date), 'MMM dd')} - {exam.time}
+                    </Typography>
+                  </Box>
+                ))}
+              </Paper>
+            )}
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 };
