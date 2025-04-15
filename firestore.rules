@@ -1,0 +1,22 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Remove the default deny all rule
+    // match /{document=**} {
+    //   allow read, write: if false;
+    // }
+    
+    // Allow access to exams collection
+    match /exams/{examId} {
+      allow read: if true;  // Anyone can read exams
+      allow write: if true; // Anyone can write exams (for development)
+    }
+    
+    // Allow access to users collection
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}
