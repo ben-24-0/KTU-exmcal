@@ -12,10 +12,11 @@ import {
   Alert,
   CircularProgress,
   Paper,
+  Button,
 } from '@mui/material';
 import Calendar from 'react-calendar';
 import type { CalendarProps } from 'react-calendar';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, differenceInDays, differenceInHours, differenceInMinutes } from 'date-fns';
 import { collection, query, where, getDocs, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Exam } from '../types';
@@ -51,6 +52,19 @@ const CalendarComponent: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [studyLeave, setStudyLeave] = useState<{
+    days: number;
+    hours: number;
+    minutes: number;
+    currentExam: string;
+    nextExam: string;
+  } | null>(null);
+  const [showStudyLeave, setShowStudyLeave] = useState(false);
+  const [examInfo, setExamInfo] = useState<{
+    firstExam: { name: string; code: string } | null;
+    secondExam: { name: string; code: string } | null;
+  }>({ firstExam: null, secondExam: null });
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -105,6 +119,12 @@ const CalendarComponent: React.FC = () => {
     fetchExams();
   }, [semester, course]);
 
+  // Store semester and course selections in localStorage
+  useEffect(() => {
+    localStorage.setItem('currentSemester', semester.toString());
+    localStorage.setItem('currentCourse', course);
+  }, [semester, course]);
+
   const tileContent = ({ date, view }: CalendarTileProps) => {
     if (view !== 'month') return null;
 
@@ -157,8 +177,156 @@ const CalendarComponent: React.FC = () => {
     }
   };
 
+  // Handle date click with exam details
+  const handleDateClick = (date: Date) => {
+    if (!showStudyLeave) return; // Only allow selection when study leave is enabled
+  
+    // Find if there's an exam on the clicked date
+    const examOnDate = exams.find(
+      (exam) => format(new Date(exam.date), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+    );
+  
+    if (selectedDates.length === 0) {
+      setSelectedDates([date]);
+      setStudyLeave(null); // Clear previous study leave details
+      
+      // Store exam info if available
+      if (examOnDate) {
+        setExamInfo(prevState => ({
+          ...prevState,
+          firstExam: {
+            name: examOnDate.name,
+            code: examOnDate.subjectCode
+          }
+        }));
+      }
+    } else if (selectedDates.length === 1) {
+      const [firstDate] = selectedDates;
+      const sortedDates = [firstDate, date].sort((a, b) => a.getTime() - b.getTime());
+      const [currentExam, nextExam] = sortedDates;
+  
+      const days = differenceInDays(nextExam, currentExam);
+      const hours = differenceInHours(nextExam, currentExam) % 24;
+      const minutes = differenceInMinutes(nextExam, currentExam) % 60;
+  
+      // Store second exam info if available
+      if (examOnDate) {
+        setExamInfo(prevState => ({
+          ...prevState,
+          secondExam: {
+            name: examOnDate.name,
+            code: examOnDate.subjectCode
+          }
+        }));
+      }
+  
+      setStudyLeave({
+        days,
+        hours,
+        minutes,
+        currentExam: format(currentExam, 'MMMM dd, yyyy HH:mm'),
+        nextExam: format(nextExam, 'MMMM dd, yyyy HH:mm'),
+      });
+  
+      setSelectedDates(sortedDates); // Keep the selected dates
+    } else {
+      setSelectedDates([date]); // Reset selection if more than two dates are clicked
+      setStudyLeave(null); // Clear previous study leave details
+      
+      // Reset exam info and store first exam info if available
+      if (examOnDate) {
+        setExamInfo({
+          firstExam: {
+            name: examOnDate.name,
+            code: examOnDate.subjectCode
+          },
+          secondExam: null
+        });
+      } else {
+        setExamInfo({
+          firstExam: null,
+          secondExam: null
+        });
+      }
+    }
+  };
+  
+  // Updated the tileClassName function to differentiate the start and end dates with green and red shades.
+  const tileClassName = ({ date }: { date: Date }) => {
+    if (!showStudyLeave || selectedDates.length === 0) return '';
+  
+    const [start, end] = selectedDates;
+    if (start && end) {
+      if (date.getTime() === start.getTime()) {
+        return 'start-date'; // Green shade for the start date
+      }
+      if (date.getTime() === end.getTime()) {
+        return 'end-date'; // Red shade for the end date
+      }
+      if (date > start && date < end) {
+        return 'shaded-date'; // Shade dates in between
+      }
+    }
+  
+    return '';
+  };
+
+  // Improved the toggle system for better user experience.
+  const toggleStudyLeave = () => {
+    setShowStudyLeave(!showStudyLeave);
+    if (!showStudyLeave) {
+      setSelectedDates([]); // Reset dates when hiding study leave
+      setStudyLeave(null); // Clear study leave details
+    }
+  };
+
+  // Removed the Countdown component and implemented a custom countdown logic.
+  const calculateCountdown = (targetDate: Date) => {
+    const now = new Date();
+    const difference = targetDate.getTime() - now.getTime();
+  
+    if (difference <= 0) {
+      return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    }
+  
+    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((difference / (1000 * 60)) % 60);
+    const seconds = Math.floor((difference / 1000) % 60);
+  
+    return { days, hours, minutes, seconds };
+  };
+  
+  // Filter exams to get only upcoming ones (after current date)
+  const getUpcomingExams = () => {
+    const today = new Date();
+    return exams
+      .filter(exam => new Date(exam.date) >= today)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(0, 3);
+  };
+
+  // Ensure countdown is accurate from current date to the end date
+  const CountdownDisplay: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
+    const [countdown, setCountdown] = useState(calculateCountdown(targetDate));
+  
+    useEffect(() => {
+      const interval = setInterval(() => {
+        setCountdown(calculateCountdown(targetDate));
+      }, 1000);
+  
+      return () => clearInterval(interval);
+    }, [targetDate]);
+  
+    return (
+      <Typography variant="h6" color="primary" gutterBottom>
+        Countdown: {countdown.days}d {countdown.hours}h {countdown.minutes}m {countdown.seconds}s
+      </Typography>
+    );
+  };
+
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto' }}>
+    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto', px: 2 }}> {/* Reduced left and right margins */}
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
         <Typography variant="h4" gutterBottom>
           Exam Calendar
@@ -192,6 +360,35 @@ const CalendarComponent: React.FC = () => {
               ))}
             </Select>
           </FormControl>
+          {/* Updated study leave toggle button */}
+          <Button
+            variant="contained"
+            color={showStudyLeave ? "error" : "primary"}
+            onClick={() => {
+              setShowStudyLeave(!showStudyLeave);
+              if (!showStudyLeave) {
+                setSelectedDates([]);
+                setStudyLeave(null);
+                alert("Select first exam date on the calendar");
+              } else {
+                setSelectedDates([]);
+                setStudyLeave(null);
+              }
+            }}
+            sx={{ 
+              fontWeight: 'bold', 
+              minWidth: '200px',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              cursor: 'pointer',
+              '&:hover': {
+                cursor: 'pointer', 
+                transform: 'scale(1.03)',
+                transition: 'transform 0.2s ease'
+              }
+            }}
+          >
+            {showStudyLeave ? 'Exit Study Leave Mode' : 'Calculate Study Leave'}
+          </Button>
         </Box>
       </Box>
 
@@ -203,6 +400,70 @@ const CalendarComponent: React.FC = () => {
         <Alert severity="error">{error}</Alert>
       ) : (
         <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
+          {/* Show study leave details correctly */}
+          {showStudyLeave && selectedDates.length > 0 && (
+            <Box sx={{ width: { xs: '100%', md: '300px' } }}>
+              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d' }}>
+                <Typography variant="h6" gutterBottom>
+                  Study Leave Details
+                </Typography>
+                
+                {selectedDates.length === 1 && (
+                  <>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 2 }}>
+                      First Exam Selected:
+                    </Typography>
+                    <Typography variant="body2" gutterBottom>
+                      {format(selectedDates[0], 'MMMM dd, yyyy')}
+                    </Typography>
+                    {examInfo.firstExam && (
+                      <Typography variant="body2" gutterBottom>
+                        {examInfo.firstExam.name} ({examInfo.firstExam.code})
+                      </Typography>
+                    )}
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 2, color: 'warning.main' }}>
+                      Please select second exam date
+                    </Typography>
+                  </>
+                )}
+                
+                {selectedDates.length === 2 && studyLeave && (
+                  <>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 2 }}>
+                      First Exam:
+                    </Typography>
+                    <Typography variant="body2" gutterBottom>
+                      {format(selectedDates[0], 'MMMM dd, yyyy')}
+                    </Typography>
+                    {examInfo.firstExam && (
+                      <Typography variant="body2" gutterBottom>
+                        {examInfo.firstExam.name} ({examInfo.firstExam.code})
+                      </Typography>
+                    )}
+                    
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 2 }}>
+                      Second Exam:
+                    </Typography>
+                    <Typography variant="body2" gutterBottom>
+                      {format(selectedDates[1], 'MMMM dd, yyyy')}
+                    </Typography>
+                    {examInfo.secondExam && (
+                      <Typography variant="body2" gutterBottom>
+                        {examInfo.secondExam.name} ({examInfo.secondExam.code})
+                      </Typography>
+                    )}
+                    
+                    <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 2 }}>
+                      Study Leave:
+                    </Typography>
+                    <Typography variant="body2" color="primary.main" sx={{ fontWeight: 'bold' }} gutterBottom>
+                      {studyLeave.days} days
+                    </Typography>
+                  </>
+                )}
+              </Paper>
+            </Box>
+          )}
           <Box sx={{ flex: 1 }}>
             <Calendar
               onChange={handleDateChange}
@@ -212,11 +473,13 @@ const CalendarComponent: React.FC = () => {
               minDate={new Date(2025, 0, 1)}  // January 1, 2025
               maxDate={new Date(2025, 11, 31)} // December 31, 2025
               minDetail="month" // This will hide the year view
+              onClickDay={handleDateClick}
+              tileClassName={tileClassName}
             />
           </Box>
-          <Box sx={{ width: { xs: '100%', md: '300px' } }}>
-            {selectedExam ? (
-              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d' }}>
+          {selectedExam && (
+            <Box sx={{ width: { xs: '100%', md: '300px' } }}>
+              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d', mb: 2 }}>
                 <Typography variant="h6" gutterBottom>
                   {selectedExam.name}
                 </Typography>
@@ -235,49 +498,26 @@ const CalendarComponent: React.FC = () => {
                   </Typography>
                 )}
               </Paper>
-            ) : (
-              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d' }}>
-                <Typography>
-                  {exams.length > 0 
-                    ? 'Select a date with an exam to view details'
-                    : 'No exams scheduled for this semester'}
-                </Typography>
-              </Paper>
-            )}
-            
-            {exams.length > 0 && (
-              <Paper elevation={3} sx={{ p: 2, mt: 2, backgroundColor: '#2d2d2d' }}>
-                <Typography variant="h6" gutterBottom>
-                  Upcoming Exams
-                </Typography>
-                {exams.map((exam) => (
-                  <Box 
-                    key={exam.id} 
-                    sx={{ 
-                      mb: 1, 
-                      p: 1, 
-                      borderRadius: 1,
-                      cursor: 'pointer',
-                      '&:hover': { backgroundColor: '#383838' },
-                      backgroundColor: selectedExam?.id === exam.id ? '#404040' : 'transparent'
-                    }}
-                    onClick={() => setSelectedExam(exam)}
-                  >
-                    <Typography variant="subtitle2">
-                      {exam.name}
-                    </Typography>
-                    <Typography variant="caption" color="textSecondary">
-                      {format(new Date(exam.date), 'MMM dd')} - {exam.time}
-                    </Typography>
-                  </Box>
-                ))}
-              </Paper>
-            )}
-          </Box>
+              {getUpcomingExams().length > 0 && (
+                <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d' }}>
+                  <Typography variant="h6" gutterBottom>
+                    Upcoming Exams
+                  </Typography>
+                  {getUpcomingExams().map((exam) => (
+                    <Box key={exam.id} sx={{ mb: 1 }}>
+                      <Typography variant="body1">
+                        {format(new Date(exam.date), 'MMMM dd, yyyy')} - {exam.name}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Paper>
+              )}
+            </Box>
+          )}
         </Box>
       )}
     </Box>
   );
 };
 
-export default CalendarComponent; 
+export default CalendarComponent;

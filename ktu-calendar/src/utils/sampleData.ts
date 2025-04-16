@@ -290,7 +290,7 @@ export const addSampleExams = async () => {
   // EEE S8 Exams
   const eeeS8Exams = [
     {
-      name: "Embedded Systems",
+      name: "ESD",
       subjectCode: "EET402",
       date: "2025-04-22",
       time: "9:30 AM",

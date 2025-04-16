@@ -242,6 +242,69 @@ button:focus-visible {
   }
 }
 
+/* Adjustments for better mobile responsiveness */
+@media (max-width: 768px) {
+  body {
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+  }
+
+  .react-calendar {
+    margin: 0 auto; /* Center the calendar */
+    padding: 0;
+  }
+
+  .react-calendar__tile {
+    min-height: 60px;
+    padding: 2px !important;
+  }
+
+  .react-calendar__month-view__days {
+    gap: 1px !important;
+    padding: 1px;
+  }
+
+  .react-calendar__month-view__days__day {
+    height: 60px !important;
+  }
+
+  .exam-indicator {
+    padding: 2px;
+    margin-top: 2px;
+  }
+
+  .calendar-container {
+    padding: 0.5rem;
+  }
+
+  .app-container {
+    margin: 0; /* Remove any left margin */
+    padding: 0 1rem; /* Add padding to prevent blank space */
+  }
+
+  .calendar-and-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .calendar-and-card > .react-calendar {
+    flex: 1;
+    width: 100%;
+  }
+
+  .calendar-and-card > .card {
+    margin-top: 1rem;
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .other-content {
+    display: none; /* Hide other content */
+  }
+}
+
 /* Fix loading issue */
 #root {
   width: 100%;
@@ -249,4 +312,30 @@ button:focus-visible {
   margin: 0;
   padding: 0;
   display: flex;
+}
+
+/* Updated styles to remove the oval shape */
+.react-calendar__tile.highlighted-date {
+  background-color: #1976d2 !important;
+  color: white !important;
+  border-radius: 4px; /* Changed from 50% to 4px */
+}
+
+.react-calendar__tile.shaded-date {
+  background-color: #90caf9 !important;
+  color: black !important;
+  border-radius: 4px; /* Changed from 50% to 4px */
+}
+
+/* Start and end date styles */
+.react-calendar__tile.start-date {
+  background-color: #4caf50 !important; /* Green for start date */
+  color: white !important;
+  border-radius: 4px;
+}
+
+.react-calendar__tile.end-date {
+  background-color: #f44336 !important; /* Red for end date */
+  color: white !important;
+  border-radius: 4px;
 }
