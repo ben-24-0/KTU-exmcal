@@ -13,6 +13,11 @@ import {
   CircularProgress,
   Paper,
   Button,
+  Table,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableBody,
 } from '@mui/material';
 import Calendar from 'react-calendar';
 import type { CalendarProps } from 'react-calendar';
@@ -41,7 +46,6 @@ const COURSES: Course[] = [
   { id: 'Civil', name: 'Civil Engineering' },
   { id: 'MECH', name: 'Mechanical Engineering' },
   { id: 'AI&ML', name: 'Artificial Intelligence & Machine Learning' },
-  
 ];
 
 const CalendarComponent: React.FC = () => {
@@ -66,6 +70,10 @@ const CalendarComponent: React.FC = () => {
     secondExam: { name: string; code: string } | null;
   }>({ firstExam: null, secondExam: null });
   const [upcomingExams, setUpcomingExams] = useState<Exam[]>([]);
+  const [tableSortConfig, setTableSortConfig] = useState<{
+    key: 'date' | 'subjectCode' | 'name';
+    direction: 'asc' | 'desc';
+  }>({ key: 'date', direction: 'asc' });
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -79,7 +87,7 @@ const CalendarComponent: React.FC = () => {
         );
         const querySnapshot = await getDocs(q);
         const examData: Exam[] = [];
-        
+
         querySnapshot.forEach((doc: QueryDocumentSnapshot<DocumentData>) => {
           const data = doc.data();
           console.log('Fetched exam data:', data); // Debug log
@@ -104,9 +112,9 @@ const CalendarComponent: React.FC = () => {
         });
 
         console.log('Total exams loaded:', examData.length); // Debug log
-        
+
         // Sort exams by date
-        setExams(examData.sort((a, b) => 
+        setExams(examData.sort((a, b) =>
           new Date(a.date).getTime() - new Date(b.date).getTime()
         ));
       } catch (err) {
@@ -138,26 +146,28 @@ const CalendarComponent: React.FC = () => {
       (exam) => format(new Date(exam.date), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
     );
 
-    console.log('Date:', format(date, 'yyyy-MM-dd'), 'Exam:', examOnDate); // Debug log
-
     return examOnDate ? (
-      <div 
-        className="exam-indicator" 
-        style={{ // Add inline styles to ensure visibility
+      <div
+        className="exam-indicator"
+        style={{
           backgroundColor: '#1976d2',
-          padding: '4px',
+          padding: '8px',
           borderRadius: '4px',
           marginTop: '4px',
           width: '100%',
-          cursor: 'default' // Make it clear this is not clickable
+          cursor: 'pointer',
+          minHeight: '32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
         }}
       >
-        <Typography 
-          variant="caption" 
-          component="div" 
-          sx={{ 
+        <Typography
+          variant="caption"
+          component="div"
+          sx={{
             color: '#fff',
-            fontSize: '0.85rem',
+            fontSize: { xs: '0.9rem', sm: '0.85rem' },
             fontWeight: 'bold',
             textAlign: 'center',
             width: '100%',
@@ -180,20 +190,17 @@ const CalendarComponent: React.FC = () => {
     }
   };
 
-  // Handle date click with exam details
   const handleDateClick = (date: Date) => {
-    if (!showStudyLeave) return; // Only allow selection when study leave is enabled
-  
-    // Find if there's an exam on the clicked date
+    if (!showStudyLeave) return;
+
     const examOnDate = exams.find(
       (exam) => format(new Date(exam.date), 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
     );
-  
+
     if (selectedDates.length === 0) {
       setSelectedDates([date]);
-      setStudyLeave(null); // Clear previous study leave details
-      
-      // Store exam info if available
+      setStudyLeave(null);
+
       if (examOnDate) {
         setExamInfo(prevState => ({
           ...prevState,
@@ -207,12 +214,11 @@ const CalendarComponent: React.FC = () => {
       const [firstDate] = selectedDates;
       const sortedDates = [firstDate, date].sort((a, b) => a.getTime() - b.getTime());
       const [currentExam, nextExam] = sortedDates;
-  
+
       const days = differenceInDays(nextExam, currentExam);
       const hours = differenceInHours(nextExam, currentExam) % 24;
       const minutes = differenceInMinutes(nextExam, currentExam) % 60;
-  
-      // Store second exam info if available
+
       if (examOnDate) {
         setExamInfo(prevState => ({
           ...prevState,
@@ -222,7 +228,7 @@ const CalendarComponent: React.FC = () => {
           }
         }));
       }
-  
+
       setStudyLeave({
         days,
         hours,
@@ -230,13 +236,12 @@ const CalendarComponent: React.FC = () => {
         currentExam: format(currentExam, 'MMMM dd, yyyy HH:mm'),
         nextExam: format(nextExam, 'MMMM dd, yyyy HH:mm'),
       });
-  
-      setSelectedDates(sortedDates); // Keep the selected dates
+
+      setSelectedDates(sortedDates);
     } else {
-      setSelectedDates([date]); // Reset selection if more than two dates are clicked
-      setStudyLeave(null); // Clear previous study leave details
-      
-      // Reset exam info and store first exam info if available
+      setSelectedDates([date]);
+      setStudyLeave(null);
+
       if (examOnDate) {
         setExamInfo({
           firstExam: {
@@ -253,54 +258,50 @@ const CalendarComponent: React.FC = () => {
       }
     }
   };
-  
-  // Updated the tileClassName function to differentiate the start and end dates with green and red shades.
+
   const tileClassName = ({ date }: { date: Date }) => {
     if (!showStudyLeave || selectedDates.length === 0) return '';
-  
+
     const [start, end] = selectedDates;
     if (start && end) {
       if (date.getTime() === start.getTime()) {
-        return 'start-date'; // Green shade for the start date
+        return 'start-date';
       }
       if (date.getTime() === end.getTime()) {
-        return 'end-date'; // Red shade for the end date
+        return 'end-date';
       }
       if (date > start && date < end) {
-        return 'shaded-date'; // Shade dates in between
+        return 'shaded-date';
       }
     }
-  
+
     return '';
   };
 
-  // Improved the toggle system for better user experience.
   const toggleStudyLeave = () => {
     setShowStudyLeave(!showStudyLeave);
     if (!showStudyLeave) {
-      setSelectedDates([]); // Reset dates when hiding study leave
-      setStudyLeave(null); // Clear study leave details
+      setSelectedDates([]);
+      setStudyLeave(null);
     }
   };
 
-  // Removed the Countdown component and implemented a custom countdown logic.
   const calculateCountdown = (targetDate: Date) => {
     const now = new Date();
     const difference = targetDate.getTime() - now.getTime();
-  
+
     if (difference <= 0) {
       return { days: 0, hours: 0, minutes: 0, seconds: 0 };
     }
-  
+
     const days = Math.floor(difference / (1000 * 60 * 60 * 24));
     const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
     const minutes = Math.floor((difference / (1000 * 60)) % 60);
     const seconds = Math.floor((difference / 1000) % 60);
-  
+
     return { days, hours, minutes, seconds };
   };
-  
-  // Filter exams to get only upcoming ones (after current date)
+
   const getUpcomingExams = () => {
     const today = new Date();
     return exams
@@ -309,27 +310,25 @@ const CalendarComponent: React.FC = () => {
       .slice(0, 3);
   };
 
-  // Ensure countdown is accurate from current date to the end date
-  const CountdownDisplay: React.FC<{ targetDate: Date }> = ({ targetDate }) => {
-    const [countdown, setCountdown] = useState(calculateCountdown(targetDate));
-  
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setCountdown(calculateCountdown(targetDate));
-      }, 1000);
-  
-      return () => clearInterval(interval);
-    }, [targetDate]);
-  
-    return (
-      <Typography variant="h6" color="primary" gutterBottom>
-        Countdown: {countdown.days}d {countdown.hours}h {countdown.minutes}m {countdown.seconds}s
-      </Typography>
-    );
+  const sortedExams = [...exams].sort((a, b) => {
+    const aValue = tableSortConfig.key === 'date' ? new Date(a[tableSortConfig.key]).getTime() : a[tableSortConfig.key];
+    const bValue = tableSortConfig.key === 'date' ? new Date(b[tableSortConfig.key]).getTime() : b[tableSortConfig.key];
+
+    if (tableSortConfig.direction === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    }
+    return aValue < bValue ? 1 : -1;
+  });
+
+  const handleSort = (key: 'date' | 'subjectCode' | 'name') => {
+    setTableSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
+    }));
   };
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1200, mx: 'auto' }}> {/* Increased padding for mobile */}
+    <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1400, mx: 'auto' }}>
       <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: { xs: 1, sm: 2 } }}>
         <Typography variant="h4" gutterBottom>
           Exam Calendar
@@ -363,7 +362,6 @@ const CalendarComponent: React.FC = () => {
               ))}
             </Select>
           </FormControl>
-          {/* Updated study leave toggle button */}
           <Button
             variant="contained"
             color={showStudyLeave ? "error" : "primary"}
@@ -378,13 +376,13 @@ const CalendarComponent: React.FC = () => {
                 setStudyLeave(null);
               }
             }}
-            sx={{ 
-              fontWeight: 'bold', 
+            sx={{
+              fontWeight: 'bold',
               minWidth: { xs: '100%', sm: '200px' },
               boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
               cursor: 'pointer',
               '&:hover': {
-                cursor: 'pointer', 
+                cursor: 'pointer',
                 transform: 'scale(1.03)',
                 transition: 'transform 0.2s ease'
               }
@@ -402,20 +400,18 @@ const CalendarComponent: React.FC = () => {
       ) : error ? (
         <Alert severity="error">{error}</Alert>
       ) : (
-        <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-          {/* Study leave details sidebar - using conditional render but preserving space */}
-          <Box sx={{ 
-            width: { xs: '100%', md: '300px' }, 
-            mb: { xs: 2, md: 0 }, 
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            {showStudyLeave && selectedDates.length > 0 ? (
-              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d', height: '100%' }}>
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'minmax(auto, 800px) 300px' },
+          gap: 3,
+          alignItems: 'flex-start'
+        }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {showStudyLeave && (
+              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d', mb: 2 }}>
                 <Typography variant="h6" gutterBottom>
                   Study Leave Details
                 </Typography>
-                
                 {selectedDates.length === 1 && (
                   <>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 2 }}>
@@ -434,7 +430,6 @@ const CalendarComponent: React.FC = () => {
                     </Typography>
                   </>
                 )}
-                
                 {selectedDates.length === 2 && studyLeave && (
                   <>
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 2 }}>
@@ -448,7 +443,6 @@ const CalendarComponent: React.FC = () => {
                         {examInfo.firstExam.name} ({examInfo.firstExam.code})
                       </Typography>
                     )}
-                    
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 2 }}>
                       Second Exam:
                     </Typography>
@@ -460,7 +454,6 @@ const CalendarComponent: React.FC = () => {
                         {examInfo.secondExam.name} ({examInfo.secondExam.code})
                       </Typography>
                     )}
-                    
                     <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 2 }}>
                       Study Leave:
                     </Typography>
@@ -470,71 +463,101 @@ const CalendarComponent: React.FC = () => {
                   </>
                 )}
               </Paper>
-            ) : showStudyLeave ? (
-              // Empty placeholder to maintain layout
-              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <Typography variant="subtitle1" color="text.secondary">
-                  Select an exam date to calculate study leave
-                </Typography>
-              </Paper>
-            ) : null}
-          </Box>
-
-          {/* Calendar component with fixed width */}
-          <Box sx={{ 
-            flex: 1,
-            minWidth: { xs: '100%', md: '450px' }, 
-            '.react-calendar': {
-              width: '100%',
-              minHeight: '350px'
-            }
-          }}>
-            <Calendar
-              onChange={handleDateChange}
-              value={date}
-              tileContent={tileContent}
-              className="dark-calendar"
-              minDate={new Date(2025, 0, 1)}  // January 1, 2025
-              maxDate={new Date(2025, 11, 31)} // December 31, 2025
-              minDetail="month" // This will hide the year view
-              onClickDay={handleDateClick}
-              tileClassName={tileClassName}
-            />
-          </Box>
-
-          {/* Right sidebar - always shows exam details or upcoming exams */}
-          <Box sx={{ width: { xs: '100%', md: '300px' }, mt: { xs: 2, md: 0 } }}>
+            )}
+            <Box sx={{
+              '.react-calendar': {
+                width: '100%',
+                minHeight: '400px',
+                '& button': {
+                  minHeight: '50px',
+                  padding: '8px',
+                  fontSize: '1rem',
+                  '&:enabled:hover': {
+                    backgroundColor: 'rgba(255,255,255,0.1)'
+                  }
+                },
+                '& .react-calendar__month-view__days__day': {
+                  aspectRatio: '1',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                },
+                '& .exam-indicator': {
+                  marginTop: '4px'
+                }
+              }
+            }}>
+              <Calendar
+                onChange={handleDateChange}
+                value={date}
+                tileContent={tileContent}
+                className="dark-calendar"
+                minDate={new Date(2025, 0, 1)}
+                maxDate={new Date(2025, 11, 31)}
+                minDetail="month"
+                onClickDay={handleDateClick}
+                tileClassName={tileClassName}
+              />
+            </Box>
             {selectedExam && (
-              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d', mb: 2 }}>
+              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d' }}>
                 <Typography variant="h6" gutterBottom>
-                  {selectedExam.name}
+                  Selected Exam Details
                 </Typography>
-                <Typography color="textSecondary" gutterBottom>
-                  Subject Code: {selectedExam.subjectCode}
-                </Typography>
-                <Typography gutterBottom>
-                  Date: {format(new Date(selectedExam.date), 'MMMM dd, yyyy')}
-                </Typography>
-                <Typography gutterBottom>
-                  Time: {selectedExam.time}
-                </Typography>
-                {selectedExam.venue && (
-                  <Typography gutterBottom>
-                    Venue: {selectedExam.venue}
+                <Box sx={{ p: 2, borderRadius: 1, backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                  <Typography variant="h6" gutterBottom>
+                    {selectedExam.name}
                   </Typography>
-                )}
+                  <Typography color="textSecondary" gutterBottom>
+                    Subject Code: {selectedExam.subjectCode}
+                  </Typography>
+                  <Typography gutterBottom>
+                    Date: {format(new Date(selectedExam.date), 'MMMM dd, yyyy')}
+                  </Typography>
+                  <Typography gutterBottom>
+                    Time: {selectedExam.time}
+                  </Typography>
+                  {selectedExam.venue && (
+                    <Typography gutterBottom>
+                      Venue: {selectedExam.venue}
+                    </Typography>
+                  )}
+                </Box>
               </Paper>
             )}
-            {/* Always show upcoming exams section */}
-            <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d' }}>
+          </Box>
+          <Box sx={{
+            position: { md: 'sticky' },
+            top: { md: '1rem' },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 3
+          }}>
+            <Paper elevation={3} sx={{
+              p: 2,
+              backgroundColor: '#2d2d2d',
+              height: 'fit-content'
+            }}>
               <Typography variant="h6" gutterBottom>
                 Upcoming Exams
               </Typography>
               {upcomingExams.length > 0 ? (
                 upcomingExams.map((exam) => (
-                  <Box key={exam.id} sx={{ mb: 1 }}>
-                    <Typography variant="body1">
-                      {format(new Date(exam.date), 'MMMM dd, yyyy')} - {exam.name}
+                  <Box key={exam.id} sx={{
+                    mb: 2,
+                    p: 2,
+                    borderRadius: 1,
+                    backgroundColor: 'rgba(255,255,255,0.05)',
+                    '&:last-child': { mb: 0 }
+                  }}>
+                    <Typography variant="subtitle2" color="primary" gutterBottom>
+                      {format(new Date(exam.date), 'MMMM dd, yyyy')}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      {exam.name}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {exam.subjectCode}
                     </Typography>
                   </Box>
                 ))
@@ -545,6 +568,55 @@ const CalendarComponent: React.FC = () => {
           </Box>
         </Box>
       )}
+      <Box sx={{ mt: 3, width: '100%' }}>
+        <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d' }}>
+          <Typography variant="h6" gutterBottom>
+            Complete Exam Timetable
+          </Typography>
+          <Box sx={{ overflowX: 'auto' }}>
+            <Table sx={{
+              minWidth: { xs: '100%', sm: 650 },
+              '& th, & td': {
+                color: 'white',
+                p: { xs: 1.5, sm: 2 },
+                borderColor: 'rgba(255,255,255,0.1)'
+              }
+            }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell
+                    onClick={() => handleSort('date')}
+                    sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    Date {tableSortConfig.key === 'date' && (tableSortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </TableCell>
+                  <TableCell
+                    onClick={() => handleSort('subjectCode')}
+                    sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    Course Code {tableSortConfig.key === 'subjectCode' && (tableSortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </TableCell>
+                  <TableCell
+                    onClick={() => handleSort('name')}
+                    sx={{ cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    Course Name {tableSortConfig.key === 'name' && (tableSortConfig.direction === 'asc' ? '↑' : '↓')}
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {sortedExams.map((exam) => (
+                  <TableRow key={exam.id}>
+                    <TableCell>{format(new Date(exam.date), 'MMM dd, yyyy')}</TableCell>
+                    <TableCell>{exam.subjectCode}</TableCell>
+                    <TableCell>{exam.name}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Box>
+        </Paper>
+      </Box>
     </Box>
   );
 };
