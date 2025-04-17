@@ -65,6 +65,7 @@ const CalendarComponent: React.FC = () => {
     firstExam: { name: string; code: string } | null;
     secondExam: { name: string; code: string } | null;
   }>({ firstExam: null, secondExam: null });
+  const [upcomingExams, setUpcomingExams] = useState<Exam[]>([]);
 
   useEffect(() => {
     const fetchExams = async () => {
@@ -125,6 +126,11 @@ const CalendarComponent: React.FC = () => {
     localStorage.setItem('currentCourse', course);
   }, [semester, course]);
 
+  // Update upcomingExams whenever exams change
+  useEffect(() => {
+    setUpcomingExams(getUpcomingExams());
+  }, [exams]);
+
   const tileContent = ({ date, view }: CalendarTileProps) => {
     if (view !== 'month') return null;
 
@@ -137,16 +143,13 @@ const CalendarComponent: React.FC = () => {
     return examOnDate ? (
       <div 
         className="exam-indicator" 
-        onClick={(e: React.MouseEvent) => {
-          e.stopPropagation();
-          setSelectedExam(examOnDate);
-        }}
         style={{ // Add inline styles to ensure visibility
           backgroundColor: '#1976d2',
           padding: '4px',
           borderRadius: '4px',
           marginTop: '4px',
-          width: '100%'
+          width: '100%',
+          cursor: 'default' // Make it clear this is not clickable
         }}
       >
         <Typography 
@@ -326,13 +329,13 @@ const CalendarComponent: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: 'auto', px: 2 }}> {/* Reduced left and right margins */}
-      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+    <Box sx={{ p: { xs: 2, sm: 3 }, maxWidth: 1200, mx: 'auto' }}> {/* Increased padding for mobile */}
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: { xs: 1, sm: 2 } }}>
         <Typography variant="h4" gutterBottom>
           Exam Calendar
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          <FormControl sx={{ minWidth: 200 }}>
+        <Box sx={{ display: 'flex', gap: { xs: 1, sm: 2 }, alignItems: 'center', flexWrap: 'wrap' }}>
+          <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
             <InputLabel>Course</InputLabel>
             <Select
               value={course}
@@ -346,7 +349,7 @@ const CalendarComponent: React.FC = () => {
               ))}
             </Select>
           </FormControl>
-          <FormControl sx={{ minWidth: 120 }}>
+          <FormControl sx={{ minWidth: { xs: '100%', sm: 120 } }}>
             <InputLabel>Semester</InputLabel>
             <Select
               value={semester}
@@ -377,7 +380,7 @@ const CalendarComponent: React.FC = () => {
             }}
             sx={{ 
               fontWeight: 'bold', 
-              minWidth: '200px',
+              minWidth: { xs: '100%', sm: '200px' },
               boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
               cursor: 'pointer',
               '&:hover': {
@@ -399,11 +402,16 @@ const CalendarComponent: React.FC = () => {
       ) : error ? (
         <Alert severity="error">{error}</Alert>
       ) : (
-        <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' } }}>
-          {/* Show study leave details correctly */}
-          {showStudyLeave && selectedDates.length > 0 && (
-            <Box sx={{ width: { xs: '100%', md: '300px' } }}>
-              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d' }}>
+        <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+          {/* Study leave details sidebar - using conditional render but preserving space */}
+          <Box sx={{ 
+            width: { xs: '100%', md: '300px' }, 
+            mb: { xs: 2, md: 0 }, 
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {showStudyLeave && selectedDates.length > 0 ? (
+              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d', height: '100%' }}>
                 <Typography variant="h6" gutterBottom>
                   Study Leave Details
                 </Typography>
@@ -462,9 +470,25 @@ const CalendarComponent: React.FC = () => {
                   </>
                 )}
               </Paper>
-            </Box>
-          )}
-          <Box sx={{ flex: 1 }}>
+            ) : showStudyLeave ? (
+              // Empty placeholder to maintain layout
+              <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <Typography variant="subtitle1" color="text.secondary">
+                  Select an exam date to calculate study leave
+                </Typography>
+              </Paper>
+            ) : null}
+          </Box>
+
+          {/* Calendar component with fixed width */}
+          <Box sx={{ 
+            flex: 1,
+            minWidth: { xs: '100%', md: '450px' }, 
+            '.react-calendar': {
+              width: '100%',
+              minHeight: '350px'
+            }
+          }}>
             <Calendar
               onChange={handleDateChange}
               value={date}
@@ -477,8 +501,10 @@ const CalendarComponent: React.FC = () => {
               tileClassName={tileClassName}
             />
           </Box>
-          {selectedExam && (
-            <Box sx={{ width: { xs: '100%', md: '300px' } }}>
+
+          {/* Right sidebar - always shows exam details or upcoming exams */}
+          <Box sx={{ width: { xs: '100%', md: '300px' }, mt: { xs: 2, md: 0 } }}>
+            {selectedExam && (
               <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d', mb: 2 }}>
                 <Typography variant="h6" gutterBottom>
                   {selectedExam.name}
@@ -498,22 +524,25 @@ const CalendarComponent: React.FC = () => {
                   </Typography>
                 )}
               </Paper>
-              {getUpcomingExams().length > 0 && (
-                <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d' }}>
-                  <Typography variant="h6" gutterBottom>
-                    Upcoming Exams
-                  </Typography>
-                  {getUpcomingExams().map((exam) => (
-                    <Box key={exam.id} sx={{ mb: 1 }}>
-                      <Typography variant="body1">
-                        {format(new Date(exam.date), 'MMMM dd, yyyy')} - {exam.name}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Paper>
+            )}
+            {/* Always show upcoming exams section */}
+            <Paper elevation={3} sx={{ p: 2, backgroundColor: '#2d2d2d' }}>
+              <Typography variant="h6" gutterBottom>
+                Upcoming Exams
+              </Typography>
+              {upcomingExams.length > 0 ? (
+                upcomingExams.map((exam) => (
+                  <Box key={exam.id} sx={{ mb: 1 }}>
+                    <Typography variant="body1">
+                      {format(new Date(exam.date), 'MMMM dd, yyyy')} - {exam.name}
+                    </Typography>
+                  </Box>
+                ))
+              ) : (
+                <Typography variant="body2">No upcoming exams found.</Typography>
               )}
-            </Box>
-          )}
+            </Paper>
+          </Box>
         </Box>
       )}
     </Box>
