@@ -329,7 +329,7 @@ button:focus-visible {
 
 /* Start and end date styles */
 .react-calendar__tile.start-date {
-  background-color: #4caf50 !important; /* Green for start date */
+  background-color: #4bd950 !important; /* Green for start date */
   color: white !important;
   border-radius: 4px;
 }
